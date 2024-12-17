@@ -1,6 +1,8 @@
 import Vapor
 
 struct AuthController: RouteCollection {
+    let spotifyCore: SpotifyCore = SpotifyCore()
+
     func boot(routes: any Vapor.RoutesBuilder) throws {
         let authRoutes = routes.grouped("v1", "auth")
         authRoutes.get("spotify", use: spotifyLoginHandler)
@@ -64,6 +66,8 @@ struct AuthController: RouteCollection {
 
         let tokenData: SpotifyTokenResponse = try JSONDecoder().decode(
             SpotifyTokenResponse.self, from: body)
-        return req.redirect(to: "/#?access_token=\(tokenData.accessToken)")
+
+        let sessionID: String = spotifyCore.handleTokenSession(tokenData)
+        return req.redirect(to: "/#?session_id=\(sessionID)")
     }
 }
