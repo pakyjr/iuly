@@ -2,19 +2,14 @@ import Vapor
 
 struct AuthController: RouteCollection {
     func boot(routes: any Vapor.RoutesBuilder) throws {
-        let authRoutes = routes.grouped("auth")
-        authRoutes.post("spotify", use: spotifyAuthHandler)
-        authRoutes.get("spotify", "login", use: spotifyLoginHandler)
-        authRoutes.get("auth", "callback", use: spotifyCallbackHandler)
-    }
-
-    func spotifyAuthHandler(req: Request) throws -> Response {
-        return Response(status: .ok)
+        let authRoutes = routes.grouped("v1", "auth")
+        authRoutes.get("spotify", use: spotifyLoginHandler)
+        authRoutes.get("callback", use: spotifyCallbackHandler)
     }
 
     func spotifyLoginHandler(req: Request) throws -> Response {
-        let state: String = "user-read-private user-read-email"
-        let scope: String = randomString(of_length: 16)
+        let scope: String = "user-read-private user-read-email"
+        let state: String = randomString(of_length: 16)
 
         let params: [String: String] = [
             "response_type": "code",
@@ -31,14 +26,12 @@ struct AuthController: RouteCollection {
     }
 
     func spotifyCallbackHandler(req: Request) async throws -> Response {
-        // Extract parameters from the callback
         guard let code = req.query[String.self, at: "code"],
             let state = req.query[String.self, at: "state"]
         else {
             return req.redirect(to: "/error?message=state_mismatch")
         }
 
-        // Prepare the request to exchange the authorization code for an access token
         let tokenURL: URI = URI(string: "https://accounts.spotify.com/api/token")
         let formBody: [String: String] = [
             "grant_type": "authorization_code",
@@ -55,20 +48,22 @@ struct AuthController: RouteCollection {
             ("Content-Type", "application/x-www-form-urlencoded"),
         ])
 
-        // Make the HTTP request to Spotify
         let tokenResponse: ClientResponse = try await req.client.post(tokenURL, headers: authHeader)
         {
             tokenRequest in
             try tokenRequest.content.encode(formBody, as: .urlEncodedForm)
         }
 
-        // Decode the response
         if let error = try? tokenResponse.content.decode(SpotifyError.self) {
             throw Abort(.badRequest, reason: error.errorDescription)
         }
 
-        let tokenData = try tokenResponse.content.decode(SpotifyTokenResponse.self)
-        // Redirect user with the access token (or handle token in other ways)
+        guard let body = tokenResponse.body else {
+            throw Abort(.badRequest, reason: "Empty response body from Spotify")
+        }
+
+        let tokenData: SpotifyTokenResponse = try JSONDecoder().decode(
+            SpotifyTokenResponse.self, from: body)
         return req.redirect(to: "/#?access_token=\(tokenData.accessToken)")
     }
 }
