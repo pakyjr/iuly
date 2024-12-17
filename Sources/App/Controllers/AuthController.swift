@@ -67,7 +67,10 @@ struct AuthController: RouteCollection {
         let tokenData: SpotifyTokenResponse = try JSONDecoder().decode(
             SpotifyTokenResponse.self, from: body)
 
-        let sessionID: String = spotifyCore.handleTokenSession(tokenData)
-        return req.redirect(to: "/#?session_id=\(sessionID)")
+        let sessionID: String = spotifyCore.handleTokenSession(tokenData)  //generate sessionID and store token
+
+        print("Redirecting to /#session_id=\(sessionID)")
+        return req.redirect(to: "http://localhost:8080/callback?session_id=\(sessionID)")
+
     }
 }

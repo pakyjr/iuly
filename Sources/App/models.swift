@@ -20,19 +20,3 @@ struct SpotifyTokenResponse: Codable {
         case refreshToken = "refresh_token"
     }
 }
-
-struct TokenSession: Content {
-    let sessionID: String
-    let accessToken: String
-    let expirationDate: Date
-
-    init(sessionID: String, accessToken: String, expirationDate: Date) {
-        self.sessionID = sessionID
-        self.accessToken = accessToken
-        self.expirationDate = expirationDate
-    }
-
-    func isExpired() -> Bool {
-        return Date() > expirationDate
-    }
-}
