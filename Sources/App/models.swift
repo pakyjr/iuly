@@ -20,3 +20,8 @@ struct SpotifyTokenResponse: Codable {
         case refreshToken = "refresh_token"
     }
 }
+
+struct SpotifyPlaylist: Decodable {
+    let name: String
+    let id: String
+}
